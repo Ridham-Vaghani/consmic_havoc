@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cosmic_havoc/components/asteroid.dart';
 import 'package:cosmic_havoc/components/audio_manager.dart';
+import 'package:cosmic_havoc/components/high_score_display.dart';
 import 'package:cosmic_havoc/components/pickup.dart';
 import 'package:cosmic_havoc/components/player.dart';
 import 'package:cosmic_havoc/components/shoot_button.dart';
@@ -28,6 +29,8 @@ class MyGame extends FlameGame
   int playerColorIndex = 0;
   late final AudioManager audioManager;
 
+  int get score => _score;
+
   @override
   FutureOr<void> onLoad() async {
     await Flame.device.fullScreen();
@@ -50,6 +53,7 @@ class MyGame extends FlameGame
     _createAsteroidSpawner();
     _createPickupSpawner();
     _createScoreDisplay();
+    add(HighScoreDisplay());
   }
 
   Future<void> _createPlayer() async {
@@ -87,8 +91,8 @@ class MyGame extends FlameGame
   void _createAsteroidSpawner() {
     _asteroidSpawner = SpawnComponent.periodRange(
       factory: (index) => Asteroid(position: _generateSpawnPosition()),
-      minPeriod: 0.7,
-      maxPeriod: 1.2,
+      minPeriod: 1.5,
+      maxPeriod: 2.5,
       selfPositioning: true,
     );
     add(_asteroidSpawner);
@@ -165,7 +169,7 @@ class MyGame extends FlameGame
   }
 
   void playerDied() {
-    overlays.add('GameOver');
+    overlays.add('HighScore');
     pauseEngine();
   }
 

@@ -1,5 +1,6 @@
 import 'package:cosmic_havoc/my_game.dart';
 import 'package:cosmic_havoc/overlays/game_over_overlay.dart';
+import 'package:cosmic_havoc/overlays/high_score_overlay.dart';
 import 'package:cosmic_havoc/overlays/title_overlay.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,10 @@ void main() {
     overlayBuilderMap: {
       'GameOver': (context, MyGame game) => GameOverOverlay(game: game),
       'Title': (context, MyGame game) => TitleOverlay(game: game),
+      'HighScore': (context, MyGame game) => HighScoreOverlay(
+            game: game,
+            currentScore: game.score,
+          ),
     },
     initialActiveOverlays: const ['Title'],
   ));

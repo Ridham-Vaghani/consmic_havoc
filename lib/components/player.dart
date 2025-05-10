@@ -73,7 +73,7 @@ class Player extends SpriteAnimationComponent
 
     // combine the joystick input with the keyboard movement
     final Vector2 movement = game.joystick.relativeDelta + _keyboardMovement;
-    position += movement.normalized() * 200 * dt;
+    position += movement.normalized() * 300 * dt;
 
     _handleScreenBounds();
 
@@ -107,12 +107,12 @@ class Player extends SpriteAnimationComponent
       screenHeight - size.y / 2,
     );
 
-    // perform wraparound if the player goes over the left or right edge
-    if (position.x < 0) {
-      position.x = screenWidth;
-    } else if (position.x > screenWidth) {
-      position.x = 0;
-    }
+    // prevent the player from going off the left or right edges
+    position.x = clampDouble(
+      position.x,
+      size.x / 2,
+      screenWidth - size.x / 2,
+    );
   }
 
   void startShooting() {
