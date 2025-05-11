@@ -4,10 +4,14 @@ import 'dart:math';
 import 'package:cosmic_havoc/components/asteroid.dart';
 import 'package:cosmic_havoc/components/audio_manager.dart';
 import 'package:cosmic_havoc/components/high_score_display.dart';
+import 'package:cosmic_havoc/components/pause_button.dart';
 import 'package:cosmic_havoc/components/pickup.dart';
 import 'package:cosmic_havoc/components/player.dart';
+import 'package:cosmic_havoc/components/settings_button.dart';
 import 'package:cosmic_havoc/components/shoot_button.dart';
 import 'package:cosmic_havoc/components/star.dart';
+import 'package:cosmic_havoc/database/database_helper.dart';
+import 'package:cosmic_havoc/overlays/settings_overlay.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
@@ -23,11 +27,14 @@ class MyGame extends FlameGame
   late SpawnComponent _pickupSpawner;
   final Random _random = Random();
   late ShootButton _shootButton;
+  late SettingsButton _settingsButton;
+  late PauseButton _pauseButton;
   int _score = 0;
   late TextComponent _scoreDisplay;
   final List<String> playerColors = ['blue', 'red', 'green', 'purple'];
   int playerColorIndex = 0;
   late final AudioManager audioManager;
+  double _gameSpeed = 1.0;
 
   int get score => _score;
 
@@ -36,23 +43,64 @@ class MyGame extends FlameGame
     await Flame.device.fullScreen();
     await Flame.device.setPortrait();
 
+    // Load saved game speed
+    _gameSpeed = await DatabaseHelper.instance.getGameSpeed();
+
     // initialize the audio manager and play the music
     audioManager = AudioManager();
     await add(audioManager);
     audioManager.playMusic();
 
     _createStars();
+    _createSettingsButton();
 
     return super.onLoad();
   }
 
+  void _createSettingsButton() {
+    _settingsButton = SettingsButton()
+      ..position = Vector2(20, 20)
+      ..priority = 10;
+    add(_settingsButton);
+  }
+
+  void _createPauseButton() {
+    _pauseButton = PauseButton()
+      ..position = Vector2(size.x - 20, 20)
+      ..priority = 10;
+    add(_pauseButton);
+  }
+
+  void showSettings() {
+    overlays.add('Settings');
+  }
+
+  void updateGameSpeed(double speed) {
+    _gameSpeed = speed;
+    // Update player speed
+    if (player != null) {
+      player.speed = 300 * _gameSpeed; // Base speed * multiplier
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    // Apply game speed to delta time
+    dt *= _gameSpeed;
+  }
+
   void startGame() async {
+    // Hide settings button when game starts
+    _settingsButton.removeFromParent();
+
     await _createJoystick();
     await _createPlayer();
     _createShootButton();
     _createAsteroidSpawner();
     _createPickupSpawner();
     _createScoreDisplay();
+    _createPauseButton();
     add(HighScoreDisplay());
   }
 
@@ -205,6 +253,9 @@ class MyGame extends FlameGame
 
     remove(_asteroidSpawner);
     remove(_pickupSpawner);
+
+    // Add back the settings button when returning to title screen
+    _createSettingsButton();
 
     // show the title overlay
     overlays.add('Title');

@@ -32,6 +32,20 @@ class DatabaseHelper {
         date TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE settings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT NOT NULL,
+        value REAL NOT NULL
+      )
+    ''');
+
+    // Insert default speed setting
+    await db.insert('settings', {
+      'key': 'game_speed',
+      'value': 1.0,
+    });
   }
 
   Future<int> insertScore(int score) async {
@@ -48,6 +62,30 @@ class DatabaseHelper {
       'highscores',
       orderBy: 'score DESC',
       limit: 10,
+    );
+  }
+
+  Future<double> getGameSpeed() async {
+    final db = await database;
+    final result = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: ['game_speed'],
+    );
+
+    if (result.isEmpty) {
+      return 1.0; // Default speed
+    }
+    return result.first['value'] as double;
+  }
+
+  Future<void> updateGameSpeed(double speed) async {
+    final db = await database;
+    await db.update(
+      'settings',
+      {'value': speed},
+      where: 'key = ?',
+      whereArgs: ['game_speed'],
     );
   }
 

@@ -15,7 +15,7 @@ class HighScoreDisplay extends TextComponent with HasGameReference<MyGame> {
           textRenderer: TextPaint(
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               shadows: [
                 Shadow(

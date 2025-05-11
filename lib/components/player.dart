@@ -26,6 +26,7 @@ class Player extends SpriteAnimationComponent
   late Timer _laserPowerupTimer;
   Shield? activeShield;
   late String _color;
+  double speed = 300.0; // Base speed
 
   Player() {
     _explosionTimer = Timer(
@@ -73,7 +74,7 @@ class Player extends SpriteAnimationComponent
 
     // combine the joystick input with the keyboard movement
     final Vector2 movement = game.joystick.relativeDelta + _keyboardMovement;
-    position += movement.normalized() * 300 * dt;
+    position += movement.normalized() * speed * dt;
 
     _handleScreenBounds();
 
