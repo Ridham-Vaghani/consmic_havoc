@@ -39,8 +39,8 @@ dependencies:
   soundpool: ^2.4.1
   shared_preferences: ^2.2.2
   sqflite: ^2.3.2
+  sqflite_common_ffi: ^2.3.2+1
   path: ^1.9.0
-  google_mobile_ads: ^4.0.0
 
 dev_dependencies:
   flutter_test:

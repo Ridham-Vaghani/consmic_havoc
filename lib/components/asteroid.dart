@@ -17,8 +17,12 @@ class Asteroid extends SpriteComponent with HasGameReference<MyGame> {
   final double _maxHealth = 3;
   late double _health;
   bool _isKnockedback = false;
+  final bool isFragment;
 
-  Asteroid({required super.position, double size = _maxSize})
+  Asteroid(
+      {required super.position,
+      double size = _maxSize,
+      this.isFragment = false})
       : super(
           size: Vector2.all(size),
           anchor: Anchor.center,
@@ -138,12 +142,13 @@ class Asteroid extends SpriteComponent with HasGameReference<MyGame> {
   }
 
   void _splitAsteroid() {
-    if (size.x <= _maxSize / 3) return;
+    if (size.x <= _maxSize / 3 || isFragment) return;
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
       final Asteroid fragment = Asteroid(
         position: position.clone(),
         size: size.x - _maxSize / 3,
+        isFragment: true,
       );
       game.add(fragment);
     }
