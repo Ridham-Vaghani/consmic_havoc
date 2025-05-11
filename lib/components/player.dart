@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:cosmic_havoc/components/asteroid.dart';
 import 'package:cosmic_havoc/components/bomb.dart';
+import 'package:cosmic_havoc/components/enemy_plane.dart';
 import 'package:cosmic_havoc/components/explosion.dart';
 import 'package:cosmic_havoc/components/laser.dart';
 import 'package:cosmic_havoc/components/pickup.dart';
@@ -12,13 +13,19 @@ import 'package:cosmic_havoc/my_game.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
+import 'package:flame/input.dart';
 import 'package:flutter/services.dart';
 
 class Player extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, KeyboardHandler, CollisionCallbacks {
-  bool _isShooting = false;
-  final double _fireCooldown = 0.2;
+    with HasGameReference<MyGame>, CollisionCallbacks, KeyboardHandler {
+  static const double _moveSpeed = 300.0;
+  static const double _fireCooldown = 0.2;
   double _elapsedFireTime = 0.0;
+  int _health = 3;
+  bool _isInvulnerable = false;
+  double _invulnerabilityTime = 1.0;
+  double _elapsedInvulnerabilityTime = 0.0;
+  bool _isShooting = false;
   final Vector2 _keyboardMovement = Vector2.zero();
   bool _isDestroyed = false;
   final Random _random = Random();
@@ -27,8 +34,12 @@ class Player extends SpriteAnimationComponent
   Shield? activeShield;
   late String _color;
   double speed = 300.0; // Base speed
+  bool _isLeftPressed = false;
+  bool _isRightPressed = false;
+  bool _isUpPressed = false;
+  bool _isDownPressed = false;
 
-  Player() {
+  Player({required Vector2 position}) : super(position: position) {
     _explosionTimer = Timer(
       0.1,
       onTick: _createRandomExplosion,
@@ -43,20 +54,31 @@ class Player extends SpriteAnimationComponent
   }
 
   @override
-  FutureOr<void> onLoad() async {
+  Future<void> onLoad() async {
     _color = game.playerColors[game.playerColorIndex];
-
     animation = await _loadAnimation();
+    size = Vector2.all(50);
+    anchor = Anchor.center;
 
-    size *= 0.3;
-
+    // Add hitbox
     add(RectangleHitbox.relative(
-      Vector2(0.6, 0.9),
+      Vector2(0.8, 0.8),
       parentSize: size,
       anchor: Anchor.center,
     ));
 
     return super.onLoad();
+  }
+
+  Future<SpriteAnimation> _loadAnimation() async {
+    return SpriteAnimation.spriteList(
+      [
+        await game.loadSprite('player_${_color}_on0.png'),
+        await game.loadSprite('player_${_color}_on1.png'),
+      ],
+      stepTime: 0.1,
+      loop: true,
+    );
   }
 
   @override
@@ -72,48 +94,47 @@ class Player extends SpriteAnimationComponent
       _laserPowerupTimer.update(dt);
     }
 
-    // combine the joystick input with the keyboard movement
-    final Vector2 movement = game.joystick.relativeDelta + _keyboardMovement;
-    position += movement.normalized() * speed * dt;
+    if (_isInvulnerable) {
+      _elapsedInvulnerabilityTime += dt;
+      if (_elapsedInvulnerabilityTime >= _invulnerabilityTime) {
+        _isInvulnerable = false;
+        opacity = 1.0;
+      } else {
+        opacity =
+            (_elapsedInvulnerabilityTime * 10).floor() % 2 == 0 ? 0.5 : 1.0;
+      }
+    }
 
-    _handleScreenBounds();
+    // Handle joystick movement
+    final joystickDelta = game.joystick.relativeDelta;
+    if (joystickDelta.length > 0) {
+      position += joystickDelta.normalized() * speed * dt;
+    }
 
-    // perform the shooting logic
+    // Handle keyboard movement
+    if (_isLeftPressed) {
+      position.x -= _moveSpeed * dt;
+    }
+    if (_isRightPressed) {
+      position.x += _moveSpeed * dt;
+    }
+    if (_isUpPressed) {
+      position.y -= _moveSpeed * dt;
+    }
+    if (_isDownPressed) {
+      position.y += _moveSpeed * dt;
+    }
+
+    // Keep player within screen bounds
+    position.x = position.x.clamp(size.x / 2, game.size.x - size.x / 2);
+    position.y = position.y.clamp(size.y / 2, game.size.y - size.y / 2);
+
+    // Update shooting
     _elapsedFireTime += dt;
     if (_isShooting && _elapsedFireTime >= _fireCooldown) {
       _fireLaser();
       _elapsedFireTime = 0.0;
     }
-  }
-
-  Future<SpriteAnimation> _loadAnimation() async {
-    return SpriteAnimation.spriteList(
-      [
-        await game.loadSprite('player_${_color}_on0.png'),
-        await game.loadSprite('player_${_color}_on1.png'),
-      ],
-      stepTime: 0.1,
-      loop: true,
-    );
-  }
-
-  void _handleScreenBounds() {
-    final double screenWidth = game.size.x;
-    final double screenHeight = game.size.y;
-
-    // prevent the player from going off the top or bottom edges
-    position.y = clampDouble(
-      position.y,
-      size.y / 2,
-      screenHeight - size.y / 2,
-    );
-
-    // prevent the player from going off the left or right edges
-    position.x = clampDouble(
-      position.x,
-      size.x / 2,
-      screenWidth - size.x / 2,
-    );
   }
 
   void startShooting() {
@@ -144,6 +165,18 @@ class Player extends SpriteAnimationComponent
           angle: -15 * degrees2Radians,
         ),
       );
+    }
+  }
+
+  void takeDamage() {
+    if (_isInvulnerable) return;
+
+    _health--;
+    if (_health <= 0) {
+      _handleDestruction();
+    } else {
+      _isInvulnerable = true;
+      _elapsedInvulnerabilityTime = 0.0;
     }
   }
 
@@ -204,11 +237,20 @@ class Player extends SpriteAnimationComponent
 
     if (_isDestroyed) return;
 
-    if (other is Asteroid) {
-      if (activeShield == null) _handleDestruction();
+    if (other is EnemyPlane) {
+      if (activeShield == null) {
+        takeDamage();
+      } else {
+        other.handleDestruction();
+        game.incrementScore(1);
+      }
+    } else if (other is Laser && other.isEnemy) {
+      if (activeShield == null) {
+        takeDamage();
+      }
+      other.removeFromParent();
     } else if (other is Pickup) {
       game.audioManager.playSound('collect');
-
       other.removeFromParent();
       game.incrementScore(1);
 
@@ -232,18 +274,21 @@ class Player extends SpriteAnimationComponent
 
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
-    _keyboardMovement.x = 0;
-    _keyboardMovement.x +=
-        keysPressed.contains(LogicalKeyboardKey.arrowLeft) ? -1 : 0;
-    _keyboardMovement.x +=
-        keysPressed.contains(LogicalKeyboardKey.arrowRight) ? 1 : 0;
+    _isLeftPressed = keysPressed.contains(LogicalKeyboardKey.arrowLeft) ||
+        keysPressed.contains(LogicalKeyboardKey.keyA);
+    _isRightPressed = keysPressed.contains(LogicalKeyboardKey.arrowRight) ||
+        keysPressed.contains(LogicalKeyboardKey.keyD);
+    _isUpPressed = keysPressed.contains(LogicalKeyboardKey.arrowUp) ||
+        keysPressed.contains(LogicalKeyboardKey.keyW);
+    _isDownPressed = keysPressed.contains(LogicalKeyboardKey.arrowDown) ||
+        keysPressed.contains(LogicalKeyboardKey.keyS);
 
-    _keyboardMovement.y = 0;
-    _keyboardMovement.y +=
-        keysPressed.contains(LogicalKeyboardKey.arrowUp) ? -1 : 0;
-    _keyboardMovement.y +=
-        keysPressed.contains(LogicalKeyboardKey.arrowDown) ? 1 : 0;
+    if (keysPressed.contains(LogicalKeyboardKey.space) &&
+        _elapsedFireTime >= _fireCooldown) {
+      _fireLaser();
+      _elapsedFireTime = 0.0;
+    }
 
-    return true;
+    return super.onKeyEvent(event, keysPressed);
   }
 }
