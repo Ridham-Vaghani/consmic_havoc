@@ -3,12 +3,12 @@ import 'package:cosmic_havoc/my_game.dart';
 import 'package:flutter/material.dart';
 
 class SettingsOverlay extends StatefulWidget {
-  final Function(double) onSpeedChanged;
+  final Function(double) onSensitivityChanged;
   final MyGame game;
 
   const SettingsOverlay({
     super.key,
-    required this.onSpeedChanged,
+    required this.onSensitivityChanged,
     required this.game,
   });
 
@@ -17,18 +17,18 @@ class SettingsOverlay extends StatefulWidget {
 }
 
 class _SettingsOverlayState extends State<SettingsOverlay> {
-  double _currentSpeed = 1.0;
+  double _currentSensitivity = 1.0;
 
   @override
   void initState() {
     super.initState();
-    _loadSpeed();
+    _loadSensitivity();
   }
 
-  Future<void> _loadSpeed() async {
-    final speed = await DatabaseHelper.instance.getGameSpeed();
+  Future<void> _loadSensitivity() async {
+    final sensitivity = await DatabaseHelper.instance.getJoystickSensitivity();
     setState(() {
-      _currentSpeed = speed;
+      _currentSensitivity = sensitivity;
     });
   }
 
@@ -63,60 +63,102 @@ class _SettingsOverlayState extends State<SettingsOverlay> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Row(
+                Column(
                   children: [
                     const Text(
-                      'Game Speed',
+                      'Joy Stick Sensitivity',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: SliderTheme(
-                        data: SliderThemeData(
-                          activeTrackColor: Colors.blue,
-                          inactiveTrackColor: Colors.blue.withOpacity(0.3),
-                          thumbColor: Colors.white,
-                          overlayColor: Colors.blue.withOpacity(0.2),
-                          valueIndicatorColor: Colors.blue,
-                          valueIndicatorTextStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SliderTheme(
+                            data: SliderThemeData(
+                              activeTrackColor: Colors.blue,
+                              inactiveTrackColor: Colors.blue.withOpacity(0.3),
+                              thumbColor: Colors.white,
+                              overlayColor: Colors.blue.withOpacity(0.2),
+                              valueIndicatorColor: Colors.blue,
+                              valueIndicatorTextStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                            child: Slider(
+                              value: _currentSensitivity,
+                              min: 0.5,
+                              max: 2.0,
+                              divisions: 30,
+                              label: _currentSensitivity.toStringAsFixed(1),
+                              onChanged: (value) async {
+                                setState(() {
+                                  _currentSensitivity = value;
+                                });
+                                await DatabaseHelper.instance
+                                    .updateJoystickSensitivity(value);
+                                widget.onSensitivityChanged(value);
+                              },
+                            ),
                           ),
                         ),
-                        child: Slider(
-                          value: _currentSpeed,
-                          min: 0.5,
-                          max: 2.0,
-                          divisions: 30,
-                          label: _currentSpeed.toStringAsFixed(1),
-                          onChanged: (value) async {
-                            setState(() {
-                              _currentSpeed = value;
-                            });
-                            await DatabaseHelper.instance
-                                .updateGameSpeed(value);
-                            widget.onSpeedChanged(value);
-                          },
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _currentSensitivity.toStringAsFixed(1),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
+                      ],
+                    )
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          widget.game.audioManager.toggleMusic();
+                        });
+                      },
+                      icon: Icon(
+                        widget.game.audioManager.musicEnabled
+                            ? Icons.music_note_rounded
+                            : Icons.music_off_rounded,
+                        color: widget.game.audioManager.musicEnabled
+                            ? Colors.white
+                            : Colors.grey,
+                        size: 30,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _currentSpeed.toStringAsFixed(1),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          widget.game.audioManager.toggleSounds();
+                        });
+                      },
+                      icon: Icon(
+                        widget.game.audioManager.soundsEnabled
+                            ? Icons.volume_up_rounded
+                            : Icons.volume_off_rounded,
+                        color: widget.game.audioManager.soundsEnabled
+                            ? Colors.white
+                            : Colors.grey,
+                        size: 30,
                       ),
                     ),
                   ],

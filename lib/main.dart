@@ -28,7 +28,7 @@ void main() {
             currentScore: game.score,
           ),
       'Settings': (context, MyGame game) => SettingsOverlay(
-            onSpeedChanged: game.updateGameSpeed,
+            onSensitivityChanged: game.updateJoystickSensitivity,
             game: game,
           ),
       'Pause': (context, MyGame game) => PauseOverlay(game: game),

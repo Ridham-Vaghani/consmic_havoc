@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:cosmic_havoc/components/asteroid.dart';
+import 'package:cosmic_havoc/components/enemy_plane.dart';
 import 'package:cosmic_havoc/components/audio_manager.dart';
 import 'package:cosmic_havoc/components/high_score_display.dart';
 import 'package:cosmic_havoc/components/pause_button.dart';
 import 'package:cosmic_havoc/components/pickup.dart';
 import 'package:cosmic_havoc/components/player.dart';
-import 'package:cosmic_havoc/components/settings_button.dart';
 import 'package:cosmic_havoc/components/shoot_button.dart';
 import 'package:cosmic_havoc/components/star.dart';
 import 'package:cosmic_havoc/database/database_helper.dart';
@@ -18,33 +17,42 @@ import 'package:flame/events.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:cosmic_havoc/components/score_text.dart';
 
 class MyGame extends FlameGame
-    with HasKeyboardHandlerComponents, HasCollisionDetection {
+    with HasKeyboardHandlerComponents, HasCollisionDetection, KeyboardEvents {
   late Player player;
   late JoystickComponent joystick;
   late SpawnComponent _asteroidSpawner;
   late SpawnComponent _pickupSpawner;
   final Random _random = Random();
   late ShootButton _shootButton;
-  late SettingsButton _settingsButton;
   late PauseButton _pauseButton;
   int _score = 0;
   late TextComponent _scoreDisplay;
   final List<String> playerColors = ['blue', 'red', 'green', 'purple'];
   int playerColorIndex = 0;
   late final AudioManager audioManager;
-  double _gameSpeed = 1.0;
+  double _joystickSensitivity = 1.0;
+  late ScoreText scoreText;
+  double _enemySpawnTimer = 0;
+  double _enemySpawnInterval = 2.0; // Time between enemy spawns
+  bool _isGameOver = false;
+  bool _isPaused = false;
+  double _playerSpeed = 300.0; // Default player speed
 
   int get score => _score;
+  double get joystickSensitivity => _joystickSensitivity;
 
   @override
   FutureOr<void> onLoad() async {
     await Flame.device.fullScreen();
     await Flame.device.setPortrait();
 
-    // Load saved game speed
-    _gameSpeed = await DatabaseHelper.instance.getGameSpeed();
+    // Load saved joystick sensitivity
+    _joystickSensitivity =
+        await DatabaseHelper.instance.getJoystickSensitivity();
 
     // initialize the audio manager and play the music
     audioManager = AudioManager();
@@ -52,16 +60,15 @@ class MyGame extends FlameGame
     audioManager.playMusic();
 
     _createStars();
-    _createSettingsButton();
+
+    // Load player speed from database
+    final db = await DatabaseHelper.instance.database;
+    final settings = await db.query('settings');
+    if (settings.isNotEmpty) {
+      _playerSpeed = (settings.first['player_speed'] as double?) ?? 300.0;
+    }
 
     return super.onLoad();
-  }
-
-  void _createSettingsButton() {
-    _settingsButton = SettingsButton()
-      ..position = Vector2(20, 20)
-      ..priority = 10;
-    add(_settingsButton);
   }
 
   void _createPauseButton() {
@@ -75,25 +82,29 @@ class MyGame extends FlameGame
     overlays.add('Settings');
   }
 
-  void updateGameSpeed(double speed) {
-    _gameSpeed = speed;
-    // Update player speed
+  void updateJoystickSensitivity(double sensitivity) {
+    _joystickSensitivity = sensitivity;
+    // Update player's joystick sensitivity
     if (player != null) {
-      player.speed = 300 * _gameSpeed; // Base speed * multiplier
+      player.speed = _playerSpeed * _joystickSensitivity;
     }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    // Apply game speed to delta time
-    dt *= _gameSpeed;
+
+    if (_isGameOver || _isPaused) return;
+
+    // Spawn enemies
+    _enemySpawnTimer += dt;
+    if (_enemySpawnTimer >= _enemySpawnInterval) {
+      _spawnEnemy();
+      _enemySpawnTimer = 0;
+    }
   }
 
   void startGame() async {
-    // Hide settings button when game starts
-    _settingsButton.removeFromParent();
-
     await _createJoystick();
     await _createPlayer();
     _createShootButton();
@@ -105,9 +116,8 @@ class MyGame extends FlameGame
   }
 
   Future<void> _createPlayer() async {
-    player = Player()
-      ..anchor = Anchor.center
-      ..position = Vector2(size.x / 2, size.y * 0.8);
+    final position = Vector2(size.x / 2, size.y * 0.8);
+    player = Player(position: position)..anchor = Anchor.center;
     add(player);
   }
 
@@ -138,7 +148,7 @@ class MyGame extends FlameGame
 
   void _createAsteroidSpawner() {
     _asteroidSpawner = SpawnComponent.periodRange(
-      factory: (index) => Asteroid(position: _generateSpawnPosition()),
+      factory: (index) => EnemyPlane(position: _generateSpawnPosition()),
       minPeriod: 1.5,
       maxPeriod: 2.5,
       selfPositioning: true,
@@ -222,9 +232,9 @@ class MyGame extends FlameGame
   }
 
   void restartGame() {
-    // remove any asteroids and pickups that are currently in the game
+    // remove any enemies and pickups that are currently in the game
     children.whereType<PositionComponent>().forEach((component) {
-      if (component is Asteroid || component is Pickup) {
+      if (component is EnemyPlane || component is Pickup) {
         remove(component);
       }
     });
@@ -254,12 +264,42 @@ class MyGame extends FlameGame
     remove(_asteroidSpawner);
     remove(_pickupSpawner);
 
-    // Add back the settings button when returning to title screen
-    _createSettingsButton();
-
     // show the title overlay
     overlays.add('Title');
 
+    resumeEngine();
+  }
+
+  void _spawnEnemy() {
+    final x = _random.nextDouble() * (size.x - 50);
+    final enemy = EnemyPlane(
+      position: Vector2(x, -50),
+    );
+    add(enemy);
+  }
+
+  void gameOver() {
+    _isGameOver = true;
+    pauseEngine();
+    overlays.add('gameOver');
+  }
+
+  void reset() {
+    _isGameOver = false;
+    _enemySpawnTimer = 0;
+    _score = 0;
+    _scoreDisplay.text = '0';
+    player.position = Vector2(size.x / 2, size.y * 0.8);
+    resumeEngine();
+  }
+
+  void pause() {
+    _isPaused = true;
+    pauseEngine();
+  }
+
+  void resume() {
+    _isPaused = false;
     resumeEngine();
   }
 }

@@ -41,9 +41,9 @@ class DatabaseHelper {
       )
     ''');
 
-    // Insert default speed setting
+    // Insert default joystick sensitivity setting
     await db.insert('settings', {
-      'key': 'game_speed',
+      'key': 'joystick_sensitivity',
       'value': 1.0,
     });
   }
@@ -65,27 +65,27 @@ class DatabaseHelper {
     );
   }
 
-  Future<double> getGameSpeed() async {
+  Future<double> getJoystickSensitivity() async {
     final db = await database;
     final result = await db.query(
       'settings',
       where: 'key = ?',
-      whereArgs: ['game_speed'],
+      whereArgs: ['joystick_sensitivity'],
     );
 
     if (result.isEmpty) {
-      return 1.0; // Default speed
+      return 1.0; // Default sensitivity
     }
     return result.first['value'] as double;
   }
 
-  Future<void> updateGameSpeed(double speed) async {
+  Future<void> updateJoystickSensitivity(double sensitivity) async {
     final db = await database;
     await db.update(
       'settings',
-      {'value': speed},
+      {'value': sensitivity},
       where: 'key = ?',
-      whereArgs: ['game_speed'],
+      whereArgs: ['joystick_sensitivity'],
     );
   }
 
