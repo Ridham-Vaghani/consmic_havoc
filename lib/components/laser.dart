@@ -67,7 +67,6 @@ class Laser extends SpriteComponent
     super.onCollision(intersectionPoints, other);
 
     if (other is Player && isEnemy) {
-      other.takeDamage();
       removeFromParent();
     }
   }

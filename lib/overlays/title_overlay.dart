@@ -1,3 +1,4 @@
+import 'package:cosmic_havoc/constants/colors.dart';
 import 'package:cosmic_havoc/my_game.dart';
 import 'package:flutter/material.dart';
 
@@ -47,58 +48,18 @@ class _TitleOverlayState extends State<TitleOverlay> {
             const SizedBox(height: 60),
             SizedBox(
               width: 270,
-              child: Image.asset('assets/images/title.png'),
+              child: Image.asset('assets/images/sky_strike.png'),
             ),
             const SizedBox(height: 20),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    widget.game.audioManager.playSound('click');
-                    setState(() {
-                      widget.game.playerColorIndex--;
-                      if (widget.game.playerColorIndex < 0) {
-                        widget.game.playerColorIndex =
-                            widget.game.playerColors.length - 1;
-                      }
-                    });
-                  },
-                  child: Transform.flip(
-                    flipX: true,
-                    child: SizedBox(
-                      width: 30,
-                      child: Image.asset('assets/images/arrow_button.png'),
-                    ),
-                  ),
+            Padding(
+              padding: const EdgeInsets.only(left: 30, right: 30, top: 30),
+              child: SizedBox(
+                width: 100,
+                child: Image.asset(
+                  'assets/images/player_basic.png',
+                  gaplessPlayback: true,
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 30, right: 30, top: 30),
-                  child: SizedBox(
-                    width: 100,
-                    child: Image.asset(
-                      'assets/images/player_${playerColor}_off.png',
-                      gaplessPlayback: true,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    widget.game.audioManager.playSound('click');
-                    setState(() {
-                      widget.game.playerColorIndex++;
-                      if (widget.game.playerColorIndex ==
-                          widget.game.playerColors.length) {
-                        widget.game.playerColorIndex = 0;
-                      }
-                    });
-                  },
-                  child: SizedBox(
-                    width: 30,
-                    child: Image.asset('assets/images/arrow_button.png'),
-                  ),
-                ),
-              ],
+              ),
             ),
             const SizedBox(height: 10),
             GestureDetector(
@@ -109,53 +70,51 @@ class _TitleOverlayState extends State<TitleOverlay> {
                   _opacity = 0.0;
                 });
               },
-              child: SizedBox(
-                width: 200,
-                child: Image.asset('assets/images/start_button.png'),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: GameColors.warmYellow, width: 3),
+                  gradient: const LinearGradient(
+                    colors: [
+                      GameColors.warmYellow,
+                      GameColors.brightRed,
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: const Text(
+                  'START',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.bottomRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            widget.game.audioManager.toggleMusic();
-                          });
-                        },
-                        icon: Icon(
-                          widget.game.audioManager.musicEnabled
-                              ? Icons.music_note_rounded
-                              : Icons.music_off_rounded,
-                          color: widget.game.audioManager.musicEnabled
-                              ? Colors.white
-                              : Colors.grey,
-                          size: 30,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            widget.game.audioManager.toggleSounds();
-                          });
-                        },
-                        icon: Icon(
-                          widget.game.audioManager.soundsEnabled
-                              ? Icons.volume_up_rounded
-                              : Icons.volume_off_rounded,
-                          color: widget.game.audioManager.soundsEnabled
-                              ? Colors.white
-                              : Colors.grey,
-                          size: 30,
-                        ),
-                      ),
-                    ],
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () {
+                widget.game.overlays.add('Settings');
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: GameColors.customBlue,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: GameColors.customBlueBorder,
+                    width: 2,
                   ),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                child: const Icon(
+                  Icons.settings,
+                  color: Colors.white,
+                  size: 35,
                 ),
               ),
             ),

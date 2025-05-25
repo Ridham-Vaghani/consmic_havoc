@@ -1,4 +1,4 @@
-package com.sweatercatdesigns.cosmic_havoc
+package com.sky.strike
 
 import io.flutter.embedding.android.FlutterActivity
 

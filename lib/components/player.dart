@@ -57,7 +57,7 @@ class Player extends SpriteAnimationComponent
   Future<void> onLoad() async {
     _color = game.playerColors[game.playerColorIndex];
     animation = await _loadAnimation();
-    size = Vector2.all(50);
+    size = Vector2.all(80);
     anchor = Anchor.center;
 
     // Add hitbox
@@ -73,11 +73,10 @@ class Player extends SpriteAnimationComponent
   Future<SpriteAnimation> _loadAnimation() async {
     return SpriteAnimation.spriteList(
       [
-        await game.loadSprite('player_${_color}_on0.png'),
-        await game.loadSprite('player_${_color}_on1.png'),
+        await game.loadSprite('player_basic.png'),
       ],
-      stepTime: 0.1,
-      loop: true,
+      stepTime: double.infinity,
+      loop: false,
     );
   }
 
@@ -105,24 +104,27 @@ class Player extends SpriteAnimationComponent
       }
     }
 
-    // Handle joystick movement
+    // Handle joystick movement with sensitivity
     final joystickDelta = game.joystick.relativeDelta;
     if (joystickDelta.length > 0) {
-      position += joystickDelta.normalized() * speed * dt;
+      // Apply sensitivity to the movement speed
+      final sensitivity = game.joystickSensitivity;
+      position += joystickDelta.normalized() * (speed * sensitivity) * dt;
     }
 
-    // Handle keyboard movement
+    // Handle keyboard movement with sensitivity
+    final sensitivity = game.joystickSensitivity;
     if (_isLeftPressed) {
-      position.x -= _moveSpeed * dt;
+      position.x -= (_moveSpeed * sensitivity) * dt;
     }
     if (_isRightPressed) {
-      position.x += _moveSpeed * dt;
+      position.x += (_moveSpeed * sensitivity) * dt;
     }
     if (_isUpPressed) {
-      position.y -= _moveSpeed * dt;
+      position.y -= (_moveSpeed * sensitivity) * dt;
     }
     if (_isDownPressed) {
-      position.y += _moveSpeed * dt;
+      position.y += (_moveSpeed * sensitivity) * dt;
     }
 
     // Keep player within screen bounds
@@ -183,7 +185,7 @@ class Player extends SpriteAnimationComponent
   void _handleDestruction() async {
     animation = SpriteAnimation.spriteList(
       [
-        await game.loadSprite('player_${_color}_off.png'),
+        await game.loadSprite('player_basic.png'),
       ],
       stepTime: double.infinity,
     );
@@ -237,17 +239,42 @@ class Player extends SpriteAnimationComponent
 
     if (_isDestroyed) return;
 
-    if (other is EnemyPlane) {
-      if (activeShield == null) {
-        takeDamage();
-      } else {
+    // If shield is active, handle enemy collisions without taking damage
+    if (activeShield != null) {
+      if (other is EnemyPlane) {
         other.handleDestruction();
         game.incrementScore(1);
+      } else if (other is Laser && other.isEnemy) {
+        game.audioManager.playSound('hit');
+        game.incrementScore(1);
+        other.removeFromParent();
+      } else if (other is Pickup) {
+        game.audioManager.playSound('collect');
+        other.removeFromParent();
+        game.incrementScore(1);
+
+        switch (other.pickupType) {
+          case PickupType.laser:
+            _laserPowerupTimer.start();
+            break;
+          case PickupType.bomb:
+            game.add(Bomb(position: position.clone()));
+            break;
+          case PickupType.shield:
+            remove(activeShield!);
+            activeShield = Shield();
+            add(activeShield!);
+            break;
+        }
       }
+      return;
+    }
+
+    // If no shield, handle collisions normally
+    if (other is EnemyPlane) {
+      takeDamage();
     } else if (other is Laser && other.isEnemy) {
-      if (activeShield == null) {
-        takeDamage();
-      }
+      takeDamage();
       other.removeFromParent();
     } else if (other is Pickup) {
       game.audioManager.playSound('collect');
@@ -262,9 +289,6 @@ class Player extends SpriteAnimationComponent
           game.add(Bomb(position: position.clone()));
           break;
         case PickupType.shield:
-          if (activeShield != null) {
-            remove(activeShield!);
-          }
           activeShield = Shield();
           add(activeShield!);
           break;

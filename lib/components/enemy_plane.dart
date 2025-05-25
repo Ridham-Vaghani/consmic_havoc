@@ -27,8 +27,8 @@ class EnemyPlane extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    sprite = await game.loadSprite('player_blue_on0.png');
-    size = Vector2.all(50);
+    sprite = await game.loadSprite('enemy_plane.png');
+    size = Vector2.all(80);
     anchor = Anchor.center;
     angle = pi; // Rotate 180 degrees
 
