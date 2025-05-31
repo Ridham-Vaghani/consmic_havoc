@@ -375,6 +375,9 @@ class Player extends SpriteAnimationComponent
 
   void setControlType(bool isJoystickEnabled) {
     _isJoystickEnabled = isJoystickEnabled;
+    // Reset touch position when switching control types
+    _lastTouchPosition = null;
+    _targetPosition = null;
   }
 
   @override

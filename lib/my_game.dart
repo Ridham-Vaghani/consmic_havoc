@@ -20,6 +20,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cosmic_havoc/components/score_text.dart';
+import 'package:cosmic_havoc/utils/app_updater.dart';
 
 class MyGame extends FlameGame
     with HasKeyboardHandlerComponents, HasCollisionDetection, KeyboardEvents {
@@ -52,6 +53,9 @@ class MyGame extends FlameGame
   FutureOr<void> onLoad() async {
     await Flame.device.fullScreen();
     await Flame.device.setPortrait();
+
+    // Check for app updates
+    await AppUpdater.checkForUpdate();
 
     // Load saved settings
     _joystickSensitivity =
@@ -325,12 +329,20 @@ class MyGame extends FlameGame
 
   void setControlType(bool isJoystick) {
     _isJoystickEnabled = isJoystick;
+
+    // Remove joystick if it exists
     if (children.any((component) => component is JoystickComponent)) {
-      if (isJoystick) {
-        add(joystick);
-      } else {
-        remove(joystick);
-      }
+      remove(joystick);
+    }
+
+    // Add joystick if joystick control is enabled
+    if (isJoystick) {
+      add(joystick);
+    }
+
+    // Update player's control type
+    if (player != null) {
+      player.setControlType(isJoystick);
     }
   }
 }

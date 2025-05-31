@@ -8,7 +8,7 @@ class HighScoreDisplay extends TextComponent with HasGameReference<MyGame> {
 
   HighScoreDisplay()
       : super(
-          text: 'Hghscore: 0',
+          text: 'Highscore: 0',
           anchor: Anchor.topLeft,
           position: Vector2(20, 20),
           priority: 10,
@@ -32,6 +32,16 @@ class HighScoreDisplay extends TextComponent with HasGameReference<MyGame> {
   Future<void> onLoad() async {
     await _loadHighScore();
     return super.onLoad();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    // Check if current score is higher than high score
+    if (game.score > _highScore) {
+      _highScore = game.score;
+      text = 'Highscore: $_highScore';
+    }
   }
 
   Future<void> _loadHighScore() async {
