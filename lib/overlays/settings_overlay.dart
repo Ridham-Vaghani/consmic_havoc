@@ -18,17 +18,21 @@ class SettingsOverlay extends StatefulWidget {
 
 class _SettingsOverlayState extends State<SettingsOverlay> {
   double _currentSensitivity = 1.0;
+  bool _isJoystickEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    _loadSensitivity();
+    _loadSettings();
   }
 
-  Future<void> _loadSensitivity() async {
+  Future<void> _loadSettings() async {
     final sensitivity = await DatabaseHelper.instance.getJoystickSensitivity();
+    final controlType = await DatabaseHelper.instance.getControlType();
+    print("Loaded control type: $controlType"); // Debug print
     setState(() {
       _currentSensitivity = sensitivity;
+      _isJoystickEnabled = controlType == 'joystick';
     });
   }
 
@@ -76,6 +80,91 @@ class _SettingsOverlayState extends State<SettingsOverlay> {
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          const SizedBox(height: 20),
+                          Column(
+                            children: [
+                              const Text(
+                                'Control Type',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        setState(() {
+                                          _isJoystickEnabled = true;
+                                        });
+                                        await DatabaseHelper.instance
+                                            .updateControlType('joystick');
+                                        widget.game.setControlType(true);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: _isJoystickEnabled
+                                            ? Colors.blue
+                                            : Colors.grey,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.games),
+                                          SizedBox(width: 8),
+                                          Text('Joystick'),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      onPressed: () async {
+                                        setState(() {
+                                          _isJoystickEnabled = false;
+                                        });
+                                        await DatabaseHelper.instance
+                                            .updateControlType('finger');
+                                        widget.game.setControlType(false);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: !_isJoystickEnabled
+                                            ? Colors.blue
+                                            : Colors.grey,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: const Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.touch_app),
+                                          SizedBox(width: 8),
+                                          Text('Finger'),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 20),
                           Column(

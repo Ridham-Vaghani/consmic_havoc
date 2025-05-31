@@ -42,18 +42,22 @@ class MyGame extends FlameGame
   bool _isGameOver = false;
   bool _isPaused = false;
   double _playerSpeed = 300.0; // Default player speed
+  bool _isJoystickEnabled = true;
 
   int get score => _score;
   double get joystickSensitivity => _joystickSensitivity;
+  bool get isJoystickEnabled => _isJoystickEnabled;
 
   @override
   FutureOr<void> onLoad() async {
     await Flame.device.fullScreen();
     await Flame.device.setPortrait();
 
-    // Load saved joystick sensitivity
+    // Load saved settings
     _joystickSensitivity =
         await DatabaseHelper.instance.getJoystickSensitivity();
+    final controlType = await DatabaseHelper.instance.getControlType();
+    _isJoystickEnabled = controlType == 'joystick';
 
     // initialize the audio manager and play the music
     audioManager = AudioManager();
@@ -146,7 +150,9 @@ class MyGame extends FlameGame
       position: Vector2(20, size.y - 20),
       priority: 10,
     );
-    add(joystick);
+    if (_isJoystickEnabled) {
+      add(joystick);
+    }
   }
 
   void _createShootButton() {
@@ -315,5 +321,16 @@ class MyGame extends FlameGame
   void resume() {
     _isPaused = false;
     resumeEngine();
+  }
+
+  void setControlType(bool isJoystick) {
+    _isJoystickEnabled = isJoystick;
+    if (children.any((component) => component is JoystickComponent)) {
+      if (isJoystick) {
+        add(joystick);
+      } else {
+        remove(joystick);
+      }
+    }
   }
 }
