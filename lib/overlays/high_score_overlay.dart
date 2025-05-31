@@ -39,14 +39,18 @@ class _HighScoreOverlayState extends State<HighScoreOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size;
+
     return Container(
       color: Colors.black.withAlpha(150),
       child: Center(
         child: Container(
+          width: size.width * 0.8,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.black.withAlpha(200),
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white, width: 2),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,

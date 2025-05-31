@@ -34,159 +34,185 @@ class _SettingsOverlayState extends State<SettingsOverlay> {
 
   void _closeSettings() {
     widget.game.overlays.remove('Settings');
+    widget.game.resumeEngine();
   }
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
-      child: Center(
-        child: Card(
-          elevation: 8,
-          color: Colors.black.withOpacity(0.9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Colors.white, width: 2),
-          ),
-          child: Container(
-            width: 300,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+      type: MaterialType.transparency,
+      child: Navigator(
+        onGenerateRoute: (settings) {
+          return MaterialPageRoute(
+            builder: (context) => Stack(
               children: [
-                const Text(
-                  'Settings',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: _closeSettings,
+                    child: Container(
+                      color: Colors.black.withOpacity(0.5),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Column(
-                  children: [
-                    const Text(
-                      'Joy Stick Sensitivity',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                      ),
+                Center(
+                  child: Material(
+                    type: MaterialType.card,
+                    elevation: 8,
+                    color: Colors.black.withOpacity(0.9),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: const BorderSide(color: Colors.white, width: 2),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderThemeData(
-                              activeTrackColor: Colors.blue,
-                              inactiveTrackColor: Colors.blue.withOpacity(0.3),
-                              thumbColor: Colors.white,
-                              overlayColor: Colors.blue.withOpacity(0.2),
-                              valueIndicatorColor: Colors.blue,
-                              valueIndicatorTextStyle: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
-                            child: Slider(
-                              value: _currentSensitivity,
-                              min: 0.5,
-                              max: 2.0,
-                              divisions: 30,
-                              label: _currentSensitivity.toStringAsFixed(1),
-                              onChanged: (value) async {
-                                setState(() {
-                                  _currentSensitivity = value;
-                                });
-                                await DatabaseHelper.instance
-                                    .updateJoystickSensitivity(value);
-                                widget.onSensitivityChanged(value);
-                              },
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _currentSensitivity.toStringAsFixed(1),
-                            style: const TextStyle(
+                    child: Container(
+                      width: 300,
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Settings',
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          widget.game.audioManager.toggleMusic();
-                        });
-                      },
-                      icon: Icon(
-                        widget.game.audioManager.musicEnabled
-                            ? Icons.music_note_rounded
-                            : Icons.music_off_rounded,
-                        color: widget.game.audioManager.musicEnabled
-                            ? Colors.white
-                            : Colors.grey,
-                        size: 30,
+                          const SizedBox(height: 20),
+                          Column(
+                            children: [
+                              const Text(
+                                'Joy Stick Sensitivity',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SliderTheme(
+                                      data: SliderThemeData(
+                                        activeTrackColor: Colors.blue,
+                                        inactiveTrackColor:
+                                            Colors.blue.withOpacity(0.3),
+                                        thumbColor: Colors.white,
+                                        overlayColor:
+                                            Colors.blue.withOpacity(0.2),
+                                        valueIndicatorColor: Colors.blue,
+                                        valueIndicatorTextStyle:
+                                            const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      child: Slider(
+                                        value: _currentSensitivity,
+                                        min: 0.5,
+                                        max: 2.0,
+                                        divisions: 30,
+                                        label: _currentSensitivity
+                                            .toStringAsFixed(1),
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _currentSensitivity = value;
+                                          });
+                                          widget.onSensitivityChanged(value);
+                                        },
+                                        onChangeEnd: (value) async {
+                                          await DatabaseHelper.instance
+                                              .updateJoystickSensitivity(value);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _currentSensitivity.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    widget.game.audioManager.toggleMusic();
+                                  });
+                                },
+                                icon: Icon(
+                                  widget.game.audioManager.musicEnabled
+                                      ? Icons.music_note_rounded
+                                      : Icons.music_off_rounded,
+                                  color: widget.game.audioManager.musicEnabled
+                                      ? Colors.white
+                                      : Colors.grey,
+                                  size: 30,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    widget.game.audioManager.toggleSounds();
+                                  });
+                                },
+                                icon: Icon(
+                                  widget.game.audioManager.soundsEnabled
+                                      ? Icons.volume_up_rounded
+                                      : Icons.volume_off_rounded,
+                                  color: widget.game.audioManager.soundsEnabled
+                                      ? Colors.white
+                                      : Colors.grey,
+                                  size: 30,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _closeSettings,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 30, vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text(
+                              'Close',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          widget.game.audioManager.toggleSounds();
-                        });
-                      },
-                      icon: Icon(
-                        widget.game.audioManager.soundsEnabled
-                            ? Icons.volume_up_rounded
-                            : Icons.volume_off_rounded,
-                        color: widget.game.audioManager.soundsEnabled
-                            ? Colors.white
-                            : Colors.grey,
-                        size: 30,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _closeSettings,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Close',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
