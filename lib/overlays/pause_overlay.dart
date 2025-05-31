@@ -11,6 +11,7 @@ class PauseOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var size = MediaQuery.of(context).size;
     return Material(
       color: Colors.black.withOpacity(0.5),
       child: Center(
@@ -22,7 +23,7 @@ class PauseOverlay extends StatelessWidget {
             side: const BorderSide(color: Colors.white, width: 2),
           ),
           child: Container(
-            width: 300,
+            width: size.width * 0.8,
             padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -51,6 +52,15 @@ class PauseOverlay extends StatelessWidget {
                   () {
                     game.overlays.remove('Pause');
                     game.restartGame();
+                  },
+                ),
+                const SizedBox(height: 15),
+                _buildButton(
+                  'Settings',
+                  Colors.blue,
+                  () {
+                    game.overlays.remove('Pause');
+                    game.overlays.add('Settings');
                   },
                 ),
                 const SizedBox(height: 15),

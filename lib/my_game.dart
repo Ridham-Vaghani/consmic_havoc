@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:cosmic_havoc/components/enemy_plane.dart';
 import 'package:cosmic_havoc/components/audio_manager.dart';
 import 'package:cosmic_havoc/components/high_score_display.dart';
+import 'package:cosmic_havoc/components/laser.dart';
 import 'package:cosmic_havoc/components/pause_button.dart';
 import 'package:cosmic_havoc/components/pickup.dart';
 import 'package:cosmic_havoc/components/player.dart';
@@ -84,8 +85,8 @@ class MyGame extends FlameGame
 
   void updateJoystickSensitivity(double sensitivity) {
     _joystickSensitivity = sensitivity;
-    // Update player's joystick sensitivity
-    if (player != null) {
+    // Update player's joystick sensitivity if player exists
+    if (children.any((component) => component is Player)) {
       player.speed = _playerSpeed * _joystickSensitivity;
     }
   }
@@ -105,6 +106,16 @@ class MyGame extends FlameGame
   }
 
   void startGame() async {
+    // Clean up any existing game elements first
+    children.whereType<PositionComponent>().forEach((component) {
+      if (component is EnemyPlane ||
+          component is Pickup ||
+          component is Player ||
+          component is Laser) {
+        remove(component);
+      }
+    });
+
     await _createJoystick();
     await _createPlayer();
     _createShootButton();
@@ -234,7 +245,10 @@ class MyGame extends FlameGame
   void restartGame() {
     // remove any enemies and pickups that are currently in the game
     children.whereType<PositionComponent>().forEach((component) {
-      if (component is EnemyPlane || component is Pickup) {
+      if (component is EnemyPlane ||
+          component is Pickup ||
+          component is Player ||
+          component is Laser) {
         remove(component);
       }
     });
