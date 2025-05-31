@@ -14,10 +14,17 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/input.dart';
+import 'package:flame/events.dart';
+import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 
 class Player extends SpriteAnimationComponent
-    with HasGameReference<MyGame>, CollisionCallbacks, KeyboardHandler {
+    with
+        HasGameReference<MyGame>,
+        CollisionCallbacks,
+        KeyboardHandler,
+        TapCallbacks,
+        DragCallbacks {
   static const double _moveSpeed = 300.0;
   static const double _fireCooldown = 0.2;
   double _elapsedFireTime = 0.0;
@@ -38,6 +45,36 @@ class Player extends SpriteAnimationComponent
   bool _isRightPressed = false;
   bool _isUpPressed = false;
   bool _isDownPressed = false;
+  Vector2? _targetPosition;
+  static const double _playerSpeed = 300.0;
+  static const double _joystickSensitivity = 1.0;
+  static const double _maxSpeed = 500.0;
+  static const double _acceleration = 1000.0;
+  static const double _deceleration = 800.0;
+  static const double _rotationSpeed = 3.0;
+  static const double _maxRotationSpeed = 5.0;
+  static const double _rotationDeceleration = 8.0;
+  static const double _maxTiltAngle = 0.5;
+  static const double _tiltSpeed = 2.0;
+  static const double _tiltDeceleration = 4.0;
+  static const double _shootCooldown = 0.2;
+  static const double _invincibilityDuration = 2.0;
+  static const int _maxLives = 3;
+  static const double _blinkInterval = 0.2;
+  Vector2 _velocity = Vector2.zero();
+  double _currentSpeed = 0.0;
+  double _targetSpeed = 0.0;
+  double _rotationVelocity = 0.0;
+  double _currentTilt = 0.0;
+  double _targetTilt = 0.0;
+  double _lastShootTime = 0.0;
+  bool _isInvincible = false;
+  double _invincibilityTimer = 0.0;
+  bool _isVisible = true;
+  double _blinkTimer = 0.0;
+  int _lives = _maxLives;
+  bool _isJoystickEnabled = true;
+  Vector2? _lastTouchPosition;
 
   Player({required Vector2 position}) : super(position: position) {
     _explosionTimer = Timer(
@@ -104,32 +141,31 @@ class Player extends SpriteAnimationComponent
       }
     }
 
-    // Handle joystick movement with sensitivity
-    final joystickDelta = game.joystick.relativeDelta;
-    if (joystickDelta.length > 0) {
-      // Apply sensitivity to the movement speed
-      final sensitivity = game.joystickSensitivity;
-      position += joystickDelta.normalized() * (speed * sensitivity) * dt;
-    }
+    if (!game.isJoystickEnabled) {
+      // Handle touch movement - directly set position to touch position
+      if (_lastTouchPosition != null) {
+        // Move plane directly to touch position
+        position = _lastTouchPosition!;
 
-    // Handle keyboard movement with sensitivity
-    final sensitivity = game.joystickSensitivity;
-    if (_isLeftPressed) {
-      position.x -= (_moveSpeed * sensitivity) * dt;
-    }
-    if (_isRightPressed) {
-      position.x += (_moveSpeed * sensitivity) * dt;
-    }
-    if (_isUpPressed) {
-      position.y -= (_moveSpeed * sensitivity) * dt;
-    }
-    if (_isDownPressed) {
-      position.y += (_moveSpeed * sensitivity) * dt;
-    }
+        // Keep player within screen bounds
+        position.clamp(
+          Vector2.zero() + size / 2,
+          game.size - size / 2,
+        );
+      }
+    } else {
+      // Handle joystick movement
+      final joystick = game.joystick;
+      if (joystick.direction != JoystickDirection.idle) {
+        position += joystick.relativeDelta * speed * dt;
 
-    // Keep player within screen bounds
-    position.x = position.x.clamp(size.x / 2, game.size.x - size.x / 2);
-    position.y = position.y.clamp(size.y / 2, game.size.y - size.y / 2);
+        // Keep player within screen bounds
+        position.clamp(
+          Vector2.zero() + size / 2,
+          game.size - size / 2,
+        );
+      }
+    }
 
     // Update shooting
     _elapsedFireTime += dt;
@@ -314,5 +350,61 @@ class Player extends SpriteAnimationComponent
     }
 
     return super.onKeyEvent(event, keysPressed);
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!game.isJoystickEnabled) {
+      _targetPosition = event.canvasPosition;
+    }
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    if (!game.isJoystickEnabled) {
+      _targetPosition = null;
+    }
+  }
+
+  @override
+  void onTapCancel(TapCancelEvent event) {
+    if (!game.isJoystickEnabled) {
+      _targetPosition = null;
+    }
+  }
+
+  void setControlType(bool isJoystickEnabled) {
+    _isJoystickEnabled = isJoystickEnabled;
+    // Reset touch position when switching control types
+    _lastTouchPosition = null;
+    _targetPosition = null;
+  }
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    if (!game.isJoystickEnabled) {
+      _lastTouchPosition = event.canvasPosition;
+    }
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    if (!game.isJoystickEnabled) {
+      _lastTouchPosition = event.canvasPosition;
+    }
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    if (!game.isJoystickEnabled) {
+      _lastTouchPosition = null;
+    }
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    if (!game.isJoystickEnabled) {
+      _lastTouchPosition = null;
+    }
   }
 }
